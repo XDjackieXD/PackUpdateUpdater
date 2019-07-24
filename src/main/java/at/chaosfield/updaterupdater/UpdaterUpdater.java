@@ -1,5 +1,6 @@
 package at.chaosfield.updaterupdater;
 
+import at.chaosfield.updaterupdater.api.UpdaterAPI;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -7,6 +8,7 @@ import org.json.JSONObject;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Properties;
 import java.util.jar.JarFile;
@@ -17,13 +19,11 @@ import java.util.jar.Manifest;
  */
 public class UpdaterUpdater {
 
-    public static final String apiUrl = "https://api.github.com/repos/XDjackieXD/PackUpdate/releases";
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws MalformedURLException {
         new UpdaterUpdater(args);
     }
 
-    public UpdaterUpdater(String[] args) {
+    public UpdaterUpdater(String[] args) throws MalformedURLException {
 
         String version = null;
 
@@ -48,6 +48,7 @@ public class UpdaterUpdater {
         Properties prop = new Properties();
         prop.setProperty("beta", "false");
         prop.setProperty("forceVersion", "");
+        prop.setProperty("apiUrl", "https://api.github.com/repos/XDjackieXD/PackUpdate/releases");
 
         try {
             if (propertyFile.exists()) {
@@ -60,6 +61,8 @@ public class UpdaterUpdater {
 
         boolean beta = prop.getProperty("beta").equalsIgnoreCase("true");
         String force_version = prop.getProperty("forceVersion");
+        URL apiUrl = new URL(prop.getProperty("apiUrl"));
+
         if (force_version.equals("")) {
             force_version = null;
         }
@@ -77,9 +80,9 @@ public class UpdaterUpdater {
         }
 
         try {
-            if (version == null || hasUpdate(version, beta, force_version)) {
+            if (version == null || hasUpdate(version, beta, force_version, apiUrl)) {
                 System.out.println("PackUpdate Update available, downloading...");
-                if (!downloadPackUpdate(packupdateFile.getPath(), beta, force_version)) {
+                if (!downloadPackUpdate(packupdateFile.getPath(), beta, force_version, apiUrl)) {
                     System.err.println("[PackUpdate Updater] Update Failed.");
                 }
             }
@@ -112,8 +115,10 @@ public class UpdaterUpdater {
         }
 
         try {
-            JarRunner.addFile(packupdateFile);
-            Method mainMethod = ClassLoader.getSystemClassLoader().loadClass(mainClass).getDeclaredMethod("main", String[].class);
+            UpdaterClassLoader loader = new UpdaterClassLoader();
+            UpdaterAPI.setClassLoader(loader);
+            loader.addURL(packupdateFile.toURI().toURL());
+            Method mainMethod = loader.loadClass(mainClass).getDeclaredMethod("main", String[].class);
             mainMethod.invoke(null, (Object) args);
         } catch (IOException | InvocationTargetException | NoSuchMethodException | IllegalAccessException | ClassNotFoundException e) {
             System.out.println("[PackUpdate Updater] Execution of PackUpdater failed");
@@ -122,7 +127,7 @@ public class UpdaterUpdater {
 
     }
 
-    public static JSONObject getReleaseForBranch(boolean beta, String force_version) throws IOException {
+    public static JSONObject getReleaseForBranch(boolean beta, String force_version, URL apiUrl) throws IOException {
          JSONArray data = getJSON(apiUrl);
          for (Object foo: data) {
              JSONObject release = (JSONObject) foo;
@@ -143,16 +148,16 @@ public class UpdaterUpdater {
          throw new RuntimeException(String.format("[PackUpdate Updater] No release found - channel: %s, force_version: %s \n", beta ? "beta" : "stable", force_version == null ? "none" : force_version));
     }
 
-    public static boolean hasUpdate(String version, boolean beta, String force_version) throws IOException {
+    public static boolean hasUpdate(String version, boolean beta, String force_version, URL apiUrl) throws IOException {
         if (force_version != null) {
             return !force_version.equals(version);
         }
-        JSONObject jsonObject = getReleaseForBranch(beta, null);
+        JSONObject jsonObject = getReleaseForBranch(beta, null, apiUrl);
         return !(jsonObject.get("tag_name")).equals(version);
     }
 
-    public static boolean downloadPackUpdate(String path, boolean beta, String force_version) throws IOException {
-        JSONObject jsonRelease = getReleaseForBranch(beta, force_version);
+    public static boolean downloadPackUpdate(String path, boolean beta, String force_version, URL apiUrl) throws IOException {
+        JSONObject jsonRelease = getReleaseForBranch(beta, force_version, apiUrl);
 
         for (Object asset: jsonRelease.getJSONArray("assets")) {
             if (((JSONObject) asset).getString("name").startsWith("PackUpdate")) {
@@ -168,8 +173,8 @@ public class UpdaterUpdater {
         return false;
     }
 
-    private static JSONArray getJSON(String url) throws IOException {
-        BufferedReader release = new BufferedReader(new BufferedReader(new InputStreamReader(new URL(url).openStream())));
+    private static JSONArray getJSON(URL url) throws IOException {
+        BufferedReader release = new BufferedReader(new BufferedReader(new InputStreamReader(url.openStream())));
 
         StringBuilder responseStrBuilder = new StringBuilder();
         String inputStr;
