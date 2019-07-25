@@ -5,11 +5,13 @@ import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.awt.*;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Enumeration;
 import java.util.Properties;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -19,11 +21,36 @@ import java.util.jar.Manifest;
  */
 public class UpdaterUpdater {
 
-    public static void main(String[] args) throws MalformedURLException {
-        new UpdaterUpdater(args);
+    public static final String PROJECT_NAME = "PackUpdateUpdater";
+
+    public static void main(String[] args) {
+        try {
+            new UpdaterUpdater().run(args);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public UpdaterUpdater(String[] args) throws MalformedURLException {
+    private String getOwnVersion() throws IOException {
+        Enumeration<URL> resources = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
+        while (resources.hasMoreElements()) {
+            URL url = resources.nextElement();
+            Manifest manifest = new Manifest(url.openStream());
+
+            String implTitle = manifest.getMainAttributes().getValue("Implementation-Title");
+
+            if (implTitle != null && implTitle.equals(PROJECT_NAME)) {
+                return manifest.getMainAttributes().getValue("Implementation-Version");
+            }
+        }
+        return "Unknown";
+    }
+
+    public void run(String[] args) throws IOException {
+
+        String selfVersion = getOwnVersion();
+
+        System.out.println("PackUpdateUpdater Version: " + selfVersion);
 
         String version = null;
 
@@ -104,8 +131,12 @@ public class UpdaterUpdater {
             if (packupdateFile.exists()) {
                 Manifest manifest = new JarFile(packupdateFile).getManifest();
                 mainClass = manifest.getMainAttributes().getValue("Main-Class");
+                if (mainClass == null) {
+                    System.err.println("[PackUpdate Updater] Downloaded packupdate jar lacks main class. Can't continue.");
+                    System.exit(1);
+                }
             } else {
-                System.err.println("[PackUpdate Updater] Everything is broken, call for help!");
+                System.err.println("[PackUpdate Updater] Could not find the file i just downloaded. Refusing to perform.");
                 System.exit(1);
             }
         } catch (IOException e) {

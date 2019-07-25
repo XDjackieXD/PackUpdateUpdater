@@ -25,7 +25,7 @@ public class UpdaterClassLoader extends ClassLoader implements PackUpdateClassLo
             classLoaders.add(urlClassLoader);
         }
         try {
-            addURLMethod = URLClassLoader.class.getMethod("addURL", URL.class);
+            addURLMethod = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
             addURLMethod.setAccessible(true);
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
@@ -40,7 +40,7 @@ public class UpdaterClassLoader extends ClassLoader implements PackUpdateClassLo
     @Override
     public void addURL(URL url) {
         try {
-            addURLMethod.invoke(urlClassLoader);
+            addURLMethod.invoke(urlClassLoader, url);
         } catch (IllegalAccessException | InvocationTargetException e) {
             e.printStackTrace();
         }
@@ -59,6 +59,7 @@ public class UpdaterClassLoader extends ClassLoader implements PackUpdateClassLo
                 if (resolve) {
                     resolveClass(klass);
                 }
+                return klass;
             } catch (ClassNotFoundException ignored) {
             }
         }
