@@ -54,7 +54,7 @@ public class UpdaterUpdater {
 
         String version = null;
 
-        String mmcDir = System.getenv("INST_MC_DIR");
+        String mmcDir = args[0].equals("client") ? System.getenv("INST_MC_DIR") : ".";
 
         if (mmcDir == null) {
             System.err.println("This program is intended to run as MultiMC Pre-Launch Hook");
