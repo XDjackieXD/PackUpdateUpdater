@@ -17,7 +17,7 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 /**
- * Created by Jakob (XDjackieXD) Riepler
+ * Created by Jakob (Jack/XDjackieXD)
  */
 public class UpdaterUpdater {
 
