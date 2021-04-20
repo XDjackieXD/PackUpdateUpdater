@@ -11,25 +11,11 @@ import java.util.List;
 
 public class UpdaterClassLoader extends ClassLoader implements PackUpdateClassLoader {
 
-    private List<ClassLoader> classLoaders = new ArrayList<>();
-    private URLClassLoader urlClassLoader;
-    private Method addURLMethod;
+    private final List<ClassLoader> classLoaders = new ArrayList<>();
 
     public UpdaterClassLoader() {
         ClassLoader parentLoader = this.getClass().getClassLoader();
         classLoaders.add(parentLoader);
-        if (parentLoader instanceof URLClassLoader) {
-            urlClassLoader = (URLClassLoader) parentLoader;
-        } else {
-            urlClassLoader = new URLClassLoader(new URL[0]);
-            classLoaders.add(urlClassLoader);
-        }
-        try {
-            addURLMethod = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-            addURLMethod.setAccessible(true);
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
-        }
     }
 
     @Override
@@ -39,11 +25,8 @@ public class UpdaterClassLoader extends ClassLoader implements PackUpdateClassLo
 
     @Override
     public void addURL(URL url) {
-        try {
-            addURLMethod.invoke(urlClassLoader, url);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
-        }
+        ClassLoader cl = new URLClassLoader(new URL[] { url });
+        classLoaders.add(cl);
     }
 
     @Override
