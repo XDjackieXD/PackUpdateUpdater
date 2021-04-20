@@ -59,6 +59,7 @@ public class UpdaterUpdater {
             mmcDir = System.getenv("INST_MC_DIR");
         }
 
+        // Can occur only on client side
         if (mmcDir == null) {
             System.err.println("This program is intended to run as MultiMC Pre-Launch Hook");
             System.exit(1);
@@ -219,7 +220,7 @@ public class UpdaterUpdater {
         return new JSONArray(responseStrBuilder.toString());
     }
 
-    public static long getLength(String filePath) throws IOException {
+    public static long getLength(String filePath) {
         File file = new File(filePath);
         if (file.exists()) {
             return file.length();

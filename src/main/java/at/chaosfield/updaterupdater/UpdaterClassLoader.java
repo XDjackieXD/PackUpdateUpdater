@@ -55,7 +55,7 @@ public class UpdaterClassLoader extends ClassLoader implements PackUpdateClassLo
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         for (ClassLoader loader : classLoaders) {
             try {
-                Class klass = loader.loadClass(name);
+                Class<?> klass = loader.loadClass(name);
                 if (resolve) {
                     resolveClass(klass);
                 }
